@@ -1,17 +1,60 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aura Notion - Anotações Diárias</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
-  <link href="/assets/fonts.css" rel="stylesheet">
-  <link href="/assets/style.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#faf5ff',
+              100: '#f3e8ff',
+              200: '#e9d5ff',
+              300: '#d8b4fe',
+              400: '#c084fc',
+              500: '#a855f7',
+              600: '#9333ea',
+              700: '#7c3aed',
+              800: '#6b21a8',
+              900: '#581c87'
+            }
+          },
+          fontFamily: {
+            elegant: ["Playfair Display", "Montserrat", "serif"]
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.3s ease-in-out',
+            'slide-up': 'slideUp 0.3s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { transform: 'translateY(10px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' },
+            },
+          }
+        }
+      },
+      darkMode: 'class'
+    };</script>
+  <link href="./assets/fonts.css" rel="stylesheet">
+  <link href="./assets/style.css" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23a21caf'/%3E%3Ctext x='32' y='40' font-size='32' text-anchor='middle' fill='white' font-family='Playfair Display'%3EA%3C/text%3E%3C/svg%3E">
+  <meta name="theme-color" content="#a21caf">
 </head>
-<body class="bg-gradient-to-br from-indigo-100 to-fuchsia-100 min-h-screen font-elegant">
+
+<body class="to-fuchsia-100 min-h-screen font-elegant">
   <div id="app" class="max-w-2xl mx-auto p-4">
-    <!-- SPA: conteúdo renderizado por JS -->
   </div>
-  <script src="/src/app.js"></script>
+  <script type="module" src="./src/app.js"></script>
 </body>
+
 </html>
