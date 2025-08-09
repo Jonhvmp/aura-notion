@@ -11,7 +11,7 @@ function getFirstDayOfMonth(year, month) {
 window.viewNote = function(date) {
   const notes = getNotes();
   const dayNotes = notes[date];
-  
+
   if (dayNotes) {
     showNotesModal(date, dayNotes);
   } else {
@@ -22,12 +22,12 @@ window.viewNote = function(date) {
 export function renderCalendario() {
   const app = document.getElementById('app');
   const notes = getNotes();
-  
+
   // Usar horário do Brasil (UTC-3) de forma mais precisa
   const now = new Date();
   // Obter data atual em UTC-3 (horário de Brasília)
   const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-  
+
   const year = brazilTime.getUTCFullYear();
   const month = brazilTime.getUTCMonth();
   const daysInMonth = getMonthDays(year, month);
@@ -58,15 +58,16 @@ export function renderCalendario() {
 
             ${Array.from({length: firstDay}, () => '<div class="calendar-day"></div>').join('')}
             ${Array.from({length: daysInMonth}, (_, i) => {
-              const d = new Date(year, month, i+1);
-              const iso = d.toISOString().slice(0,10);
+              const day = (i + 1).toString().padStart(2, '0');
+              const monthStr = (month + 1).toString().padStart(2, '0');
+              const iso = `${year}-${monthStr}-${day}`;
+
               const dayNotes = notes[iso];
               const hasNote = dayNotes && (
                 (typeof dayNotes === 'string' && dayNotes.trim()) ||
                 (Array.isArray(dayNotes) && dayNotes.length > 0)
               );
-              
-              // Comparar com horário do Brasil usando formato ISO correto
+
               const todayBrazil = brazilTime.toISOString().slice(0,10);
               const isToday = iso === todayBrazil;
 

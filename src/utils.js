@@ -346,11 +346,13 @@ export function showModal(options) {
 }
 
 export function showNotesModal(date, notes) {
-  const formattedDate = new Date(date).toLocaleDateString('pt-BR', {
+  const localDate = new Date(date + 'T12:00:00-03:00');
+  const formattedDate = localDate.toLocaleDateString('pt-BR', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
+    timeZone: 'America/Sao_Paulo'
   });
 
   let notesArray = [];
@@ -360,7 +362,7 @@ export function showNotesModal(date, notes) {
     notesArray = notes;
   }
 
-  const notesContent = notesArray.map((note, index) => 
+  const notesContent = notesArray.map((note, index) =>
     `<div class="note-content-modal"><strong>Anotação ${index + 1}:</strong><br>${note}</div>`
   ).join('');
 
