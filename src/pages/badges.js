@@ -20,7 +20,7 @@ export function renderBadges() {
 
   app.innerHTML = `
     ${createNavigation('badges')}
-    
+
     <div class="main-content">
       <div class="container">
         <header class="page-header">
