@@ -14,7 +14,7 @@ export function renderResumo() {
           <h1 class="title">Resumo</h1>
           <p class="subtitle">Todas as suas entradas organizadas por data</p>
         </header>
-        
+
         <section class="space-y-6">
           ${dates.length === 0 ?
             `<div class="card text-center">
@@ -28,12 +28,16 @@ export function renderResumo() {
                 <div class="flex items-center justify-between mb-4">
                   <time datetime="${date}" class="flex items-center gap-2 text-sm font-semibold tracking-wide text-slate-300">
                     <i class="ph ph-calendar-dots"></i>
-                    ${new Date(date).toLocaleDateString('pt-BR', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    ${(() => {
+                      const localDate = new Date(date + 'T12:00:00-03:00');
+                      return localDate.toLocaleDateString('pt-BR', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        timeZone: 'America/Sao_Paulo'
+                      });
+                    })()}
                   </time>
                   <span class="inline-flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-full bg-brand-600/20 text-brand-300">
                     <i class="ph ph-text-aa-fill"></i>
