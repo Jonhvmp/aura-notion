@@ -1,4 +1,4 @@
-import { getTodayISO, getNotes, saveNotes, getStreak, saveStreak, getBadges, saveBadges, validateNote, showFeedback, debugLocalStorage, createNavigation, setupNavigation } from '../utils.js';
+import { getTodayISO, getNotes, saveNotes, getStreak, saveStreak, getBadges, saveBadges, validateNote, showFeedback, debugLocalStorage, createNavigation, setupNavigation, showConfirm } from '../utils.js';
 
 function updateStreak(today, notes) {
   let streak = getStreak();
@@ -54,9 +54,22 @@ export function renderHome() {
   const app = document.getElementById('app');
   const today = getTodayISO();
   const notes = getNotes();
-  const note = notes[today] || '';
-  const charCount = note.length;
+  const todayNotes = notes[today] || [];
+  const charCount = 0; // Sempre começar com textarea vazio
   const maxChars = 5000;
+
+  // Converter nota única em array se necessário (compatibilidade)
+  let notesArray = [];
+  if (typeof todayNotes === 'string') {
+    notesArray = todayNotes.trim() ? [todayNotes] : [];
+  } else if (Array.isArray(todayNotes)) {
+    notesArray = todayNotes;
+  }
+
+  // Limitar exibição a 5 notas mais recentes
+  const maxDisplayNotes = 5;
+  const displayNotes = notesArray.slice(-maxDisplayNotes).reverse(); // Mais recentes primeiro
+  const hiddenNotesCount = Math.max(0, notesArray.length - maxDisplayNotes);
 
   app.innerHTML = `
     <div class="main-content">
@@ -67,41 +80,112 @@ export function renderHome() {
           <h1 class="title">Anotações do Dia</h1>
           <p class="subtitle">${today}</p>
         </header>
-        
+
         <section class="card">
           <div class="form-group">
             <div class="flex justify-between items-center mb-4">
-              <label for="note" class="form-label">Sua anotação</label>
-              <span class="text-xs font-medium ${charCount > maxChars * 0.9 ? 'text-red-400' : 'text-slate-400'}">${charCount}/${maxChars}</span>
+              <label for="note" class="form-label">
+                <i class="ph ph-plus-circle"></i>
+                ${notesArray.length > 0 ? 'Adicionar nova anotação' : 'Sua primeira anotação'}
+              </label>
+              <span class="text-xs font-medium text-slate-400">${charCount}/${maxChars}</span>
             </div>
             <textarea
               id="note"
               class="form-textarea"
               placeholder="Capture pensamentos, reflexões, aprendizados ou pequenos highlights do dia..."
               maxlength="${maxChars}"
-            >${note}</textarea>
+            ></textarea>
           </div>
-          
+
           <div class="flex items-center gap-4">
             <button id="save" class="btn">
               <i class="ph ph-floppy-disk"></i>
-              Salvar Anotação
+              ${notesArray.length > 0 ? 'Adicionar Anotação' : 'Salvar Anotação'}
             </button>
-            ${note ? `<button id="clear" class="btn-secondary">
-              <i class="ph ph-trash"></i>
-              Limpar
-            </button>` : ''}
           </div>
-          
+
           <div id="streak" class="mt-6"></div>
         </section>
+
+        ${displayNotes.length > 0 ? `
+        <section class="card">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="form-label">
+              <i class="ph ph-note-pencil"></i>
+              Suas anotações de hoje (${notesArray.length})
+            </h3>
+            ${hiddenNotesCount > 0 ? `
+              <button id="show-all" class="text-sm text-brand-accent hover:text-brand-accent-hover transition-colors">
+                Ver todas (${hiddenNotesCount} ocultas)
+              </button>
+            ` : ''}
+          </div>
+          <div class="notes-list" id="notes-container">
+            ${displayNotes.map((note, displayIndex) => {
+              const actualIndex = notesArray.length - 1 - displayIndex; // Index real no array original
+              return `
+                <div class="note-item" data-index="${actualIndex}">
+                  <div class="note-content">${note}</div>
+                  <button class="note-delete" data-index="${actualIndex}" title="Excluir esta nota">
+                    <i class="ph ph-trash"></i>
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </section>
+        ` : ''}
       </div>
     </div>
-  `;
-
-  const saveBtn = document.getElementById('save');
+  `;  const saveBtn = document.getElementById('save');
   const noteTextarea = document.getElementById('note');
-  const clearBtn = document.getElementById('clear');
+  const deleteButtons = document.querySelectorAll('.note-delete');
+  const showAllBtn = document.getElementById('show-all');
+
+  // Função para mostrar todas as notas
+  if (showAllBtn) {
+    showAllBtn.addEventListener('click', () => {
+      const notesContainer = document.getElementById('notes-container');
+      notesContainer.innerHTML = notesArray.slice().reverse().map((note, displayIndex) => {
+        const actualIndex = notesArray.length - 1 - displayIndex;
+        return `
+          <div class="note-item" data-index="${actualIndex}">
+            <div class="note-content">${note}</div>
+            <button class="note-delete" data-index="${actualIndex}" title="Excluir esta nota">
+              <i class="ph ph-trash"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      // Re-adicionar event listeners para os novos botões
+      setupDeleteButtons();
+      showAllBtn.style.display = 'none';
+    });
+  }
+
+  function setupDeleteButtons() {
+    document.querySelectorAll('.note-delete').forEach(button => {
+      button.addEventListener('click', async () => {
+        const index = parseInt(button.dataset.index);
+
+        const confirmed = await customConfirm(
+          'Tem certeza que deseja excluir esta anotação? Esta ação não pode ser desfeita.',
+          'Excluir Anotação',
+          {
+            confirmText: 'Excluir',
+            cancelText: 'Cancelar',
+            icon: 'ph-trash'
+          }
+        );
+
+        if (confirmed) {
+          deleteNoteAtIndex(today, index);
+        }
+      });
+    });
+  }
 
   // Contador de caracteres em tempo real
   function updateCharCount(textarea) {
@@ -117,15 +201,39 @@ export function renderHome() {
     saveBtn.style.opacity = current > maxChars ? '0.6' : '1';
   }
 
-  noteTextarea.addEventListener('input', () => updateCharCount(noteTextarea));  saveBtn.onclick = () => {
+  noteTextarea.addEventListener('input', () => updateCharCount(noteTextarea));
+
+  setupDeleteButtons();
+
+  function deleteNoteAtIndex(date, index) {
+    const notes = getNotes();
+    let dateNotes = notes[date] || [];
+
+    // Converter string em array se necessário
+    if (typeof dateNotes === 'string') {
+      dateNotes = dateNotes.trim() ? [dateNotes] : [];
+    }
+
+    if (Array.isArray(dateNotes) && index >= 0 && index < dateNotes.length) {
+      dateNotes.splice(index, 1);
+
+      // Se não há mais notas, remover completamente a entrada do dia
+      if (dateNotes.length === 0) {
+        delete notes[date];
+      } else {
+        notes[date] = dateNotes;
+      }
+
+      if (saveNotes(notes)) {
+        showFeedback('Anotação excluída com sucesso', 'success');
+        renderHome(); // Re-renderizar a página
+      } else {
+        showFeedback('Erro ao excluir anotação', 'error');
+      }
+    }
+  }  saveBtn.onclick = () => {
     const value = noteTextarea.value;
     const validation = validateNote(value);
-
-    // console.log('Debug salvamento:', {
-    //   valor: value,
-    //   validacao: validation,
-    //   hoje: today
-    // });
 
     if (!validation.valid) {
       showFeedback(validation.message, 'error');
@@ -138,45 +246,29 @@ export function renderHome() {
 
     try {
       const notesAtual = getNotes();
-      // console.log('Notas atuais:', notesAtual);
+      let todayNotes = notesAtual[today] || [];
 
-      notesAtual[today] = validation.note;
-      // console.log('Adicionando nota para hoje:', today, validation.note);
+      // Converter string em array se necessário (compatibilidade)
+      if (typeof todayNotes === 'string') {
+        todayNotes = todayNotes.trim() ? [todayNotes] : [];
+      }
+
+      // Adicionar nova nota ao array
+      todayNotes.push(validation.note);
+      notesAtual[today] = todayNotes;
 
       const sucessoSalvamento = saveNotes(notesAtual);
-      // console.log('Resultado salvamento:', sucessoSalvamento);
 
       if (sucessoSalvamento) {
         updateStreak(today, notesAtual);
-        showFeedback('Anotação salva com sucesso! 📝', 'success');
-
-        // Verificar se realmente salvou
-        const verificacao = getNotes();
-        // console.log('Verificação pós-salvamento:', verificacao);
+        showFeedback('Anotação adicionada com sucesso! 📝', 'success');
 
         // Limpar textarea após salvamento bem sucedido
         noteTextarea.value = '';
         updateCharCount(noteTextarea);
 
-        // Atualizar contador de caracteres
-        const counter = document.querySelector('.text-xs.font-medium');
-        if (counter) {
-          counter.textContent = `0/${maxChars}`;
-          counter.className = 'text-xs font-medium text-slate-400';
-        }
-
-        // Remover botão limpar se existir
-        const clearBtn = document.getElementById('clear');
-        if (clearBtn) {
-          clearBtn.remove();
-        }
-
-        // Atualizar streak display
-        const streak = getStreak();
-        const streakElement = document.getElementById('streak');
-        if (streak > 0) {
-          streakElement.innerHTML = `<div class="streak-banner">🔥 <span>${streak} dia${streak > 1 ? 's' : ''} seguidos</span></div>`;
-        }
+        // Re-renderizar a página para mostrar a nova nota
+        renderHome();
       } else {
         showFeedback('Erro ao salvar anotação', 'error');
       }
@@ -185,23 +277,9 @@ export function renderHome() {
       showFeedback('Erro inesperado ao salvar', 'error');
     } finally {
       saveBtn.disabled = false;
-      saveBtn.innerHTML = '<i class="ph ph-floppy-disk"></i> Salvar Anotação';
+      saveBtn.innerHTML = originalText;
     }
   };
-
-  if (clearBtn) {
-    clearBtn.onclick = () => {
-      if (confirm('Tem certeza que deseja limpar a anotação de hoje?')) {
-        delete notes[today];
-        if (saveNotes(notes)) {
-          showFeedback('Anotação removida', 'success');
-          renderHome();
-        } else {
-          showFeedback('Erro ao remover anotação', 'error');
-        }
-      }
-    };
-  }
 
   // Mostrar streak
   const streak = getStreak();
