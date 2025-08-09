@@ -137,19 +137,130 @@ export function showFeedback(message, type = 'success') {
 
 // Debug localStorage
 export function debugLocalStorage() {
-  console.log('🔍 DEBUG LOCALSTORAGE:');
-  console.log('📚 Notes:', localStorage.getItem('notes'));
-  console.log('🔥 Streak:', localStorage.getItem('streak'));
-  console.log('🏆 Badges:', localStorage.getItem('badges'));
-  console.log('📅 Last Date:', localStorage.getItem('lastNoteDate'));
 
   // Teste de escrita
   try {
     localStorage.setItem('teste', 'funcionando');
     const teste = localStorage.getItem('teste');
-    console.log('✅ LocalStorage funciona:', teste);
+    console.log('LocalStorage funciona:', teste);
     localStorage.removeItem('teste');
   } catch (error) {
-    console.error('❌ Erro no localStorage:', error);
+    console.error('Erro no localStorage:', error);
   }
+}
+
+// Navegação responsiva com Phosphor Icons e Sidebar
+export function createNavigation(activePage = 'hoje') {
+  const menuItems = [
+    { href: '#', page: 'hoje', icon: 'note-pencil', label: 'Hoje' },
+    { href: '#resumo', page: 'resumo', icon: 'chart-bar', label: 'Resumo' },
+    { href: '#calendario', page: 'calendario', icon: 'calendar', label: 'Calendário' },
+    { href: '#badges', page: 'badges', icon: 'trophy', label: 'Badges' }
+  ];
+
+  const navLinksDesktop = menuItems.map(item =>
+    `<a href="${item.href}" class="nav-link ${item.page === activePage ? 'active' : ''}">
+      <i class="ph ph-${item.icon} nav-icon"></i>
+      <span class="nav-label">${item.label}</span>
+    </a>`
+  ).join('');
+
+  const navLinksSidebar = menuItems.map(item =>
+    `<a href="${item.href}" class="sidebar-link ${item.page === activePage ? 'active' : ''}">
+      <i class="ph ph-${item.icon} sidebar-icon"></i>
+      <span class="sidebar-label">${item.label}</span>
+    </a>`
+  ).join('');
+
+  return `
+    <div class="nav-container">
+      <!-- Desktop Navigation -->
+      <nav class="nav-desktop">
+        <div class="nav-brand">
+          <i class="ph ph-sparkle brand-icon"></i>
+          <span class="brand-text">Aura Notes</span>
+        </div>
+
+        <div class="nav-links">
+          ${navLinksDesktop}
+        </div>
+
+        <button class="nav-toggle" id="nav-toggle" aria-label="Menu">
+          <i class="ph ph-list toggle-icon"></i>
+        </button>
+      </nav>
+
+      <!-- Mobile Sidebar -->
+      <aside class="nav-sidebar" id="nav-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-brand">
+            <i class="ph ph-sparkle brand-icon"></i>
+            <span class="brand-text">Aura Notes</span>
+          </div>
+          <button class="sidebar-close" id="sidebar-close" aria-label="Fechar menu">
+            <i class="ph ph-x close-icon"></i>
+          </button>
+        </div>
+
+        <div class="sidebar-content">
+          <nav class="sidebar-nav">
+            ${navLinksSidebar}
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Sidebar Overlay -->
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    </div>
+  `;
+}
+
+export function setupNavigation() {
+  const navToggle = document.getElementById('nav-toggle');
+  const sidebar = document.getElementById('nav-sidebar');
+  const sidebarClose = document.getElementById('sidebar-close');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+  if (!navToggle || !sidebar || !sidebarClose || !sidebarOverlay) return;
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    sidebarOverlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    sidebarOverlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  // Abrir sidebar
+  navToggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    openSidebar();
+  });
+
+  // Fechar sidebar
+  sidebarClose.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeSidebar();
+  });
+
+  // Fechar sidebar ao clicar no overlay
+  sidebarOverlay.addEventListener('click', closeSidebar);
+
+  // Fechar sidebar ao clicar em um link
+  sidebar.addEventListener('click', (e) => {
+    if (e.target.closest('.sidebar-link')) {
+      closeSidebar();
+    }
+  });
+
+  // Fechar sidebar com ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+      closeSidebar();
+    }
+  });
 }
