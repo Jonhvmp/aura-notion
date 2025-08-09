@@ -1,5 +1,8 @@
 export function getTodayISO() {
-  return new Date().toISOString().slice(0, 10);
+  // Obter data atual em UTC-3 (horário de Brasília)
+  const now = new Date();
+  const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+  return brazilTime.toISOString().slice(0, 10);
 }
 
 export function validateNote(note) {
@@ -262,5 +265,109 @@ export function setupNavigation() {
     if (e.key === 'Escape' && sidebar.classList.contains('open')) {
       closeSidebar();
     }
+  });
+}
+
+// Sistema de Modal - delegado para modal.js
+// Nota: As funções de modal agora são fornecidas pelo modal.js global
+
+// Funções de conveniência para compatibilidade com código existente
+export function showAlert(message, title = 'Aviso') {
+  if (typeof customAlert !== 'undefined') {
+    return customAlert(message, title);
+  } else {
+    alert(message); // fallback
+  }
+}
+
+export function showConfirm(message, onConfirm, onCancel = () => {}, title = 'Confirmação') {
+  if (typeof customConfirm !== 'undefined') {
+    customConfirm(message, title)
+      .then(result => {
+        if (result) {
+          onConfirm();
+        } else {
+          onCancel();
+        }
+      });
+  } else {
+    if (confirm(message)) { // fallback
+      onConfirm();
+    } else {
+      onCancel();
+    }
+  }
+}
+
+// Função legacy para compatibilidade
+export function showModal(options) {
+  const {
+    title = 'Informação',
+    message = '',
+    type = 'info',
+    onConfirm = () => {},
+    onCancel = () => {}
+  } = options;
+
+  if (typeof window.showModal !== 'undefined') {
+    if (type === 'confirm') {
+      return window.showModal({
+        title,
+        content: message,
+        type: 'confirm',
+        onConfirm,
+        onCancel,
+        showCancel: true,
+        showConfirm: true
+      });
+    } else {
+      return window.showModal({
+        title,
+        content: message,
+        type: 'info',
+        onConfirm,
+        showCancel: false,
+        showConfirm: true,
+        confirmText: 'OK'
+      });
+    }
+  } else {
+    // fallback
+    if (type === 'confirm') {
+      if (confirm(message)) {
+        onConfirm();
+      } else {
+        onCancel();
+      }
+    } else {
+      alert(message);
+    }
+  }
+}
+
+export function showNotesModal(date, notes) {
+  const formattedDate = new Date(date).toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  let notesArray = [];
+  if (typeof notes === 'string') {
+    notesArray = [notes];
+  } else if (Array.isArray(notes)) {
+    notesArray = notes;
+  }
+
+  const notesContent = notesArray.map((note, index) => 
+    `<div class="note-content-modal"><strong>Anotação ${index + 1}:</strong><br>${note}</div>`
+  ).join('');
+
+  const content = notesContent || '<p style="text-align: center; color: var(--text-muted); font-style: italic;">Nenhuma anotação encontrada para este dia.</p>';
+
+  showViewModal(content, `📝 Anotações de ${formattedDate}`, {
+    icon: 'ph-note-pencil',
+    maxWidth: '600px'
   });
 }
