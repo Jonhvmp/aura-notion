@@ -1,4 +1,4 @@
-import { getNotes, createNavigation, setupNavigation } from '../utils.js';
+import { getNotes, createNavigation, setupNavigation, showNotesModal } from '../utils.js';
 
 function getMonthDays(year, month) {
   return new Date(year, month + 1, 0).getDate();
@@ -10,22 +10,31 @@ function getFirstDayOfMonth(year, month) {
 
 window.viewNote = function(date) {
   const notes = getNotes();
-  if (notes[date]) {
-    alert(`Anotação de ${new Date(date).toLocaleDateString('pt-BR')}:\n\n${notes[date]}`);
+  const dayNotes = notes[date];
+  
+  if (dayNotes) {
+    showNotesModal(date, dayNotes);
+  } else {
+    showNotesModal(date, null);
   }
 };
 
 export function renderCalendario() {
   const app = document.getElementById('app');
   const notes = getNotes();
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
+  
+  // Usar horário do Brasil (UTC-3) de forma mais precisa
+  const now = new Date();
+  // Obter data atual em UTC-3 (horário de Brasília)
+  const brazilTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+  
+  const year = brazilTime.getUTCFullYear();
+  const month = brazilTime.getUTCMonth();
   const daysInMonth = getMonthDays(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
   const daysWithNotes = Object.keys(notes);
 
-  const monthName = today.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const monthName = brazilTime.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 
   app.innerHTML = `
     <div class="main-content">
@@ -36,7 +45,7 @@ export function renderCalendario() {
           <h1 class="title">Calendário</h1>
           <p class="subtitle">${monthName.charAt(0).toUpperCase()+monthName.slice(1)}</p>
         </header>
-        
+
         <section class="card">
           <div class="calendar-grid">
             <div class="calendar-header">Dom</div>
@@ -46,21 +55,39 @@ export function renderCalendario() {
             <div class="calendar-header">Qui</div>
             <div class="calendar-header">Sex</div>
             <div class="calendar-header">Sáb</div>
-            
+
             ${Array.from({length: firstDay}, () => '<div class="calendar-day"></div>').join('')}
             ${Array.from({length: daysInMonth}, (_, i) => {
               const d = new Date(year, month, i+1);
               const iso = d.toISOString().slice(0,10);
-              const hasNote = daysWithNotes.includes(iso);
-              const isToday = iso === new Date().toISOString().slice(0,10);
+              const dayNotes = notes[iso];
+              const hasNote = dayNotes && (
+                (typeof dayNotes === 'string' && dayNotes.trim()) ||
+                (Array.isArray(dayNotes) && dayNotes.length > 0)
+              );
+              
+              // Comparar com horário do Brasil usando formato ISO correto
+              const todayBrazil = brazilTime.toISOString().slice(0,10);
+              const isToday = iso === todayBrazil;
+
+              let preview = '';
+              if (hasNote) {
+                if (typeof dayNotes === 'string') {
+                  preview = dayNotes.substring(0, 50) + (dayNotes.length > 50 ? '...' : '');
+                } else if (Array.isArray(dayNotes)) {
+                  const firstNote = dayNotes[0] || '';
+                  const totalNotes = dayNotes.length;
+                  preview = `${firstNote.substring(0, 40)}${firstNote.length > 40 ? '...' : ''}${totalNotes > 1 ? ` (+${totalNotes - 1})` : ''}`;
+                }
+              }
 
               return `<div class="calendar-day ${hasNote ? 'has-note' : ''} ${isToday ? 'today' : ''}" onclick="viewNote('${iso}')">
                 <div class="day-number">${i+1}</div>
-                ${hasNote ? `<div class="day-preview">${notes[iso].substring(0, 100)}${notes[iso].length > 100 ? '...' : ''}</div>` : ''}
+                ${hasNote ? `<div class="day-preview">${preview}</div>` : ''}
               </div>`;
             }).join('')}
           </div>
-          
+
           <div class="mt-6 flex items-center gap-4 text-sm text-slate-400">
             <div class="flex items-center gap-2">
               <i class="ph ph-circle-fill text-brand-500"></i>
